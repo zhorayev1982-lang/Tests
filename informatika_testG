@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Информатика пәнінен тест</title>
+<style>
+  :root{
+    --bg:#eef3f8; --card:#ffffff; --ink:#1d2733; --muted:#5d6b7a; --line:#d5dde6;
+    --accent:#1f5fbf; --ok-bg:#d9f4df; --ok-line:#1e9e46; --bad-bg:#fbdcdc; --bad-line:#d23232;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121820; --card:#1b2430; --ink:#e8eef5; --muted:#9aa8b8; --line:#2e3b4a;
+      --accent:#6aa5ff; --ok-bg:#15381f; --ok-line:#3fc767; --bad-bg:#431a1a; --bad-line:#ff6b6b;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;padding:20px 14px 60px}
+  .wrap{max-width:720px;margin:0 auto}
+  h1{font-size:1.5rem;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+  label{display:block;font-weight:600;margin-bottom:6px}
+  input[type=text],select{width:100%;padding:11px 12px;font-size:1rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+  button{font:inherit;cursor:pointer}
+  .btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:600;font-size:1rem}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .q h3{margin:0 0 12px;font-size:1.05rem}
+  .opt{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:8px;padding:11px 14px;margin-bottom:8px;font-size:1rem}
+  .opt:hover:not(:disabled){border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-line)}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-line)}
+  .opt:disabled{cursor:default}
+  .opt:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  .progress{color:var(--muted);font-size:.9rem;margin-bottom:10px}
+  .result{text-align:center}
+  .score{font-size:2.6rem;font-weight:700;margin:6px 0}
+  .status{margin-top:12px;font-weight:600}
+  .status.ok{color:var(--ok-line)} .status.err{color:var(--bad-line)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Информатика пәнінен тест</h1>
+  <p class="sub">Әр нұсқада 5 сұрақ. Дұрыс жауап — жасыл, қате жауап — қызыл.</p>
+
+  <!-- Start screen -->
+  <div id="start" class="card">
+    <div class="row">
+      <div><label for="fname">Оқушының аты-жөні</label>
+        <input type="text" id="fname" placeholder="Мысалы: Асанов Ерлан" autocomplete="name"></div>
+      <div><label for="variant">Нұсқа</label>
+        <select id="variant"><option value="1">1-нұсқа</option><option value="2">2-нұсқа</option></select></div>
+    </div>
+    <p id="startErr" class="status err hidden" style="margin-top:10px">Аты-жөніңізді жазыңыз.</p>
+    <p style="margin-bottom:0"><button class="btn" id="startBtn">Тестті бастау</button></p>
+  </div>
+
+  <!-- Test -->
+  <div id="test" class="hidden">
+    <div class="progress" id="progress"></div>
+    <div id="questions"></div>
+    <button class="btn" id="finishBtn" disabled>Тестті аяқтау</button>
+  </div>
+
+  <!-- Result -->
+  <div id="result" class="card result hidden">
+    <div>Нәтиже</div>
+    <div class="score" id="scoreText"></div>
+    <div id="resultInfo" style="color:var(--muted)"></div>
+    <div id="sendStatus" class="status"></div>
+  </div>
+</div>
+
+<script>
+/* ============ БАПТАУ ============
+   Google Apps Script Web App сілтемесін осында қойыңыз
+   (нұсқаулық жауап мәтінінде берілген) */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwZHvLuO8cl5xIJjTIalbu_E4rtp8xqm1DxRKJ7zO0JNRJbB7aHYCS69MWxMWro_r8gvw/exec";
+
+/* ============ СҰРАҚТАР ============ */
+const TESTS = {
+  1: [
+    {q:"1 байт неше битке тең?", o:["4 бит","8 бит","16 бит","10 бит"], a:1},
+    {q:"Компьютердің «миы» деп аталатын құрылғы қайсы?", o:["Жедел жад","Монитор","Процессор","Пернетақта"], a:2},
+    {q:"Төмендегілердің қайсысы шығару құрылғысы?", o:["Тінтуір","Сканер","Принтер","Микрофон"], a:2},
+    {q:"Екілік санау жүйесінде қандай цифрлар қолданылады?", o:["0 және 1","1 және 2","0-ден 9-ға дейін","0, 1, 2"], a:0},
+    {q:"Word бағдарламасында құжатты сақтау үшін қай пернелер тіркесімі қолданылады?", o:["Ctrl + C","Ctrl + V","Ctrl + S","Ctrl + P"], a:2}
+  ],
+  2: [
+    {q:"1 килобайт (КБ) неше байтқа тең?", o:["100 байт","1000 бит","1024 байт","512 байт"], a:2},
+    {q:"Компьютер өшірілгенде мәліметтер өшіп қалатын жад қайсы?", o:["Қатты диск","Жедел жад (RAM)","Флеш-жад","CD-диск"], a:1},
+    {q:"Excel бағдарламасында формула қай таңбадан басталады?", o:["#","@","=","$"], a:2},
+    {q:"Интернеттегі беттерді қарауға арналған бағдарлама қалай аталады?", o:["Браузер","Редактор","Архиватор","Антивирус"], a:0},
+    {q:"Алгоритмнің қасиеті болып табылмайтыны қайсы?", o:["Дискреттілік","Түсініктілік","Нәтижелілік","Көркемдік"], a:3}
+  ]
+};
+
+let current = [], answered = 0, score = 0, student = "", variant = 1;
+const $ = id => document.getElementById(id);
+
+$("startBtn").onclick = () => {
+  const name = $("fname").value.trim();
+  if(name.length < 3){ $("startErr").classList.remove("hidden"); return; }
+  student = name; variant = +$("variant").value;
+  current = TESTS[variant]; answered = 0; score = 0;
+  $("start").classList.add("hidden");
+  $("test").classList.remove("hidden");
+  render();
+};
+
+function render(){
+  const box = $("questions"); box.innerHTML = "";
+  current.forEach((item, qi) => {
+    const card = document.createElement("div");
+    card.className = "card q";
+    const h = document.createElement("h3");
+    h.textContent = (qi+1) + ". " + item.q;
+    card.appendChild(h);
+    item.o.forEach((text, oi) => {
+      const b = document.createElement("button");
+      b.className = "opt"; b.textContent = text;
+      b.onclick = () => choose(card, item, oi);
+      card.appendChild(b);
+    });
+    box.appendChild(card);
+  });
+  updateProgress();
+}
+
+function choose(card, item, oi){
+  const btns = card.querySelectorAll(".opt");
+  btns.forEach(b => b.disabled = true);
+  if(oi === item.a){ btns[oi].classList.add("correct"); score++; }
+  else { btns[oi].classList.add("wrong"); btns[item.a].classList.add("correct"); }
+  answered++;
+  updateProgress();
+}
+
+function updateProgress(){
+  $("progress").textContent = `${variant}-нұсқа · Жауап берілді: ${answered} / ${current.length}`;
+  $("finishBtn").disabled = answered < current.length;
+}
+
+$("finishBtn").onclick = async () => {
+  $("finishBtn").disabled = true;
+  $("test").classList.add("hidden");
+  $("result").classList.remove("hidden");
+  $("scoreText").textContent = `${score} / ${current.length}`;
+  $("resultInfo").textContent = `${student} · ${variant}-нұсқа`;
+  const st = $("sendStatus");
+  st.className = "status"; st.textContent = "Нәтиже Google Sheets-ке жіберілуде…";
+
+  if(SHEET_URL.startsWith("ОСЫНДА")){
+    st.className = "status err";
+    st.textContent = "Google Sheets сілтемесі әлі қойылмаған (SHEET_URL).";
+    return;
+  }
+  try{
+    await fetch(SHEET_URL, {
+      method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({
+        name: student,
+        variant: variant + "-нұсқа",
+        score: score + "/" + current.length,
+        date: new Date().toLocaleString("kk-KZ")
+      })
+    });
+    st.className = "status ok";
+    st.textContent = "Нәтиже Google Sheets-ке жіберілді ✓";
+  }catch(e){
+    st.className = "status err";
+    st.textContent = "Жіберу кезінде қате шықты. Интернетті тексеріп, мұғалімге хабарлаңыз.";
+  }
+};
+</script>
+</body>
+</html>
